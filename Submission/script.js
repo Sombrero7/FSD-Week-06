@@ -1,6 +1,9 @@
 // Reference the <video> and the <source> elements
 const video = document.getElementById('video'); 
-const videoSource = document.getElementById('video-src')
+const videoSource = document.getElementById('video-src');
+
+// Mute the video to comply with autoplay policies
+video.muted = true;
 
 // Reference other DOM elements
 const videoList = document.getElementById("video-list");
@@ -13,85 +16,127 @@ const originalList = [...videos];
 let currentvideoIndex = 0;
 let isShuffle = false;
 
-// Function to update the video playlist displayed in the UI
-function updatePlayList(playlist){
-    // Write your code here for task 1
+/**
+ * Task 1: Update Playlist
+ */
+function updatePlayList(playlist) {
+    videoList.innerHTML = "";
+    playlist.forEach((vid, index) => {
+        const li = document.createElement("li");
+        li.textContent = vid.title;
+        li.dataset.index = index;
+        videoList.appendChild(li);
+    });
 }
 
-// Function to update the UI with video information
+/**
+ * Update the UI with the current video's information.
+ */
 function updateUI(currentvideoIndex, playlist) {
     document.getElementById('video-title').textContent = playlist[currentvideoIndex]["title"];
     document.getElementById('video-artist').textContent = playlist[currentvideoIndex]["artist-name"];
 }
 
-// Function to play the current video
+/**
+ * Play the video at the current index from the provided playlist.
+ */
 function playvideo(playlist) {
     video.pause();
-    // Set the video source
     videoSource.src = playlist[currentvideoIndex]["url"];    
-    // Load and play the video after setting the source
     video.load();
-    video.play();
-    // Update the UI with video information
+    video.play().catch(error => {
+      console.error("Autoplay prevented:", error);
+    });
     updateUI(currentvideoIndex, playlist);
 }
 
-// Event delegation for video selection in the playlist
+/**
+ * Task 2: Video Selection from Playlist
+ */
 videoList.addEventListener('click', (e) => {
-    // Write your code here for task 2
+    if (e.target && e.target.nodeName === "LI") {
+        currentvideoIndex = parseInt(e.target.dataset.index, 10);
+        playvideo(isShuffle ? videos : originalList);
+    }
 });
 
-// Event listeners for play, next, and previous buttons
-document.getElementById('play-button').addEventListener('click', () => {
-    playvideo(isShuffle ? videos : originalList);
-});
-
+/**
+ * Task 3: Next Button Click
+ */
 document.getElementById('next-button').addEventListener('click', () => {
-    // Move to the next video and play it
-    // Write your code here for task 3
+    const playlist = isShuffle ? videos : originalList;
+    currentvideoIndex++;
+    if (currentvideoIndex >= playlist.length) {
+        currentvideoIndex = 0;
+    }
+    playvideo(playlist);
 });
 
+/**
+ * Task 4: Previous Button Click
+ */
 document.getElementById('prev-button').addEventListener('click', () => {
-    // Move to the previous video and play it
-    // Write your code here for task 4
+    const playlist = isShuffle ? videos : originalList;
+    currentvideoIndex--;
+    if (currentvideoIndex < 0) {
+        currentvideoIndex = playlist.length - 1;
+    }
+    playvideo(playlist);
 });
 
-// Function to shuffle the array in place
+/**
+ * Added: Pause Button Click
+ */
+document.getElementById('pause-button').addEventListener('click', () => {
+    video.pause();
+});
+
+/**
+ * Task 5: Shuffling the Playlist
+ */
 function shuffleArray(array) {
-    // Write your code here for task 5
+    for (let i = 0; i < array.length; i++) {
+        const randomIndex = Math.floor(Math.random() * array.length);
+        [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
+    }
 }
 
-// Event listener for the Shuffle button
+/**
+ * Shuffle button event listener.
+ */
 document.getElementById('shuffle-button').addEventListener('click', (event) => {
     isShuffle = !isShuffle;
-
     if (isShuffle) {
         event.target.textContent = "Click to Unshuffle";
-        // Shuffle the playlist, update it, and play the first video
         shuffleArray(videos);
         updatePlayList(videos);
         currentvideoIndex = 0;
         playvideo(videos);
     } else {
         event.target.textContent = "Click to Shuffle";
-        // Restore the original playlist, update it, and play the first video
         updatePlayList(originalList);
         currentvideoIndex = 0;
         playvideo(originalList);
     }
 });
 
-// Event listener to filter the playlist based on search input
+/**
+ * Event listener to filter the playlist based on search input.
+ */
 searchInput.addEventListener('input', () => {
     const searchTerm = searchInput.value.toLowerCase();
     const filteredvideos = originalList.filter((video) =>
         video.title.toLowerCase().includes(searchTerm)
     );
-    // Update the displayed playlist with the filtered videos
     updatePlayList(filteredvideos);
-    updateUI(currentvideoIndex, originalList);
+    if(filteredvideos.length > 0) {
+        currentvideoIndex = 0;
+        updateUI(currentvideoIndex, filteredvideos);
+    }
 });
 
-// Initialize the playlist and UI with the original list
+// ----- Auto-Play a Random Video on Page Load -----
+currentvideoIndex = Math.floor(Math.random() * originalList.length);
 updatePlayList(originalList);
 updateUI(currentvideoIndex, originalList);
+playvideo(originalList);
